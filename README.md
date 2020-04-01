@@ -22,7 +22,7 @@ This project requires the standard [SWI-Prolog](https://www.swi-prolog.org/downl
 
 ```sh
 $ git clone https://github.com/SukhyAnand/SER502-Spring2020-Team3.git
-$ cd COVID-19-Detection-Using-Deep-Learning
+$ cd SER502-Spring2020-Team3
 ```
 
 ## Installation Instructions
