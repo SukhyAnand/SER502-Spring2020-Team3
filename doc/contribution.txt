@@ -1,0 +1,29 @@
+MILESTONE - 1
+
+Team member 1 - Aditya Bajaj
+Designed the structure & worked on the Documentation.
+
+Team member 2 - Aihaab Shaikh
+Designed the structure & worked on the Documentation.
+
+Team member 3 - Sakshi Jain
+Contributed to deciding on design features and grammar.
+
+Team member 4 - Sukhpreet Singh
+Contributed to deciding on design features and grammar.
+
+============================================================================================
+
+TENTATIVE PLAN
+
+Team member 1 - Aditya Bajaj
+Will work on generating the parse tree from the tokens sent by the lexical analyzer.
+
+Team member 2 - Aihaab Shaikh
+Will work on tokenizing the input program which will be the input for the parser.
+
+Team member 3 - Sakshi Jain
+Will work on developing the environment that will parse the parse tree and return the output of the program.
+
+Team member 4 - Sukhpreet Singh 
+Will work on developing the environment that will parse the parse tree and return the output of the program.
