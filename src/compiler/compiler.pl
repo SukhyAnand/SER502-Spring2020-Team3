@@ -17,6 +17,11 @@
 % PARSER
 %------------------------------------------------------------------------------------------------------------------------
 
+:- table declaration_list/3, variable_declaration_list/3, parameter_list/3, statement_list/3,
+    local_declarations/3, else_if_list/3, simple_expression/3, and_expression/3, addsub_expresssion/3,
+    muldiv_expression/3, mutable/3, argument_list/3.
+
+
 % Rule for head of parser
 parser(t_parser(P)) --> program(P).
 
