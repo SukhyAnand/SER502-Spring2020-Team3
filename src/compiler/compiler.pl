@@ -11,7 +11,104 @@
 % LEXICAL ANALYZER
 %------------------------------------------------------------------------------------------------------------------------
 
-% TODO
+:- discontiguous token/3, csyms/3, csymf/3.
+
+%Keywords
+token("static") --> "static".
+token("if") --> "if".
+token("elsif") --> "elsif".
+token("else") --> "else".
+%token("return") --> "return".
+%token("break") --> "break".
+token("print") --> "print".
+token("size") --> "size".
+
+%Data Types
+token("int") --> "int".
+token("char") --> "char".
+token("bool") --> "bool".
+token("string") --> "string".
+
+%Constants
+token("true") --> "true".
+token("false") --> "false".
+
+%Operators
+token("==") --> "==".
+token("!=") --> "!=".
+token("<=") --> "<=".
+token(">=") --> ">=".
+token("<") --> "<".
+token(">") --> ">".
+token("=") --> "=".
+token("+=") --> "+=".
+token("-=") --> "-=".
+token("*=") --> "*=".
+token("/=") --> "/=".
+token("++") --> "++".
+token("--") --> "--".
+token("or") --> "or".
+token("||") --> "||".
+token("and") --> "and".
+token("&&") --> "&&".
+token("not") --> "not".
+token("!") --> "!".
+token("+") --> "+".
+token("-") --> "-".
+token("*") --> "*".
+token("/") --> "/".
+token("%") --> "%".
+token("+") --> "+".
+token("-") --> "-".
+
+%Delimiters
+token(";") --> ";".
+token(",") --> ",".
+token(".") --> ".".
+
+%Paranthesis
+token("[") --> "[".
+token("]") --> "]".
+token("{") --> "{".
+token("}") --> "}".
+token("(") --> "(".
+token(")") --> ")".
+
+%Loops
+token("while") --> "while".
+token("for") --> "for".
+token("in") --> "in".
+token("range") --> "range".
+
+%token(N) --> [C], {atom_codes(N,[C])}.
+
+token(N) --> csymf(C), csyms(Cs), {atom_codes(N,[C|Cs])}.
+csymf(C) --> [C], {char_type(C,csymf)}.
+csyms([C|Cs]) --> [C], {char_type(C,csym)}, csyms(Cs).
+csyms([]) --> [].
+
+token(N) --> csymf(C), csyms(Cs), {atom_codes(N,[C|Cs])}.
+csymf(C) --> [C], {is_digit(C)}.
+csyms([C|Cs]) --> [C], {is_digit(C)}, csyms(Cs).
+csyms([]) --> [].
+%token(N) --> [C], {atom_codes(N,[C])}.
+
+tokens([]) --> [].
+tokens(Ts) --> " ", tokens(Ts).
+tokens([T|Ts]) --> token(T), tokens(Ts).
+
+lexer(Cs, Tokens) :-
+    phrase(tokens(Tokens), Cs), !.
+
+%testing queries:
+%lexer(`int a = 28000 ; while(a != 0){print hello; a--;}`, R).
+%lexer(`while( -5 - ( 9 * 0 ))89;`, R).
+%lexer(`for x in range(89,90)09;`, R).
+%lexer(`if(66){if(65);}`, R).
+%lexer(`if(66){print(65);}elseif(67){print(66);}else{print(66);}`, R).
+%lexer(`{ y += 5;}`, R).
+%lexer(`int x, y = 5;{y += 5;}`, R).
+%lexer(`int x, y = 5;`, R).
 
 %------------------------------------------------------------------------------------------------------------------------
 % PARSER
