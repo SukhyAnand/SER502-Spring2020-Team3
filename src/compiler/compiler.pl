@@ -87,7 +87,7 @@ csymf(C) --> [C], {char_type(C,csymf)}.
 csyms([C|Cs]) --> [C], {char_type(C,csym)}, csyms(Cs).
 csyms([]) --> [].
 
-token(N) --> csymf(C), csyms(Cs), {atom_codes(N,[C|Cs])}.
+token(N) --> csymf(C), csyms(Cs), {number_codes(N,[C|Cs])}.
 csymf(C) --> [C], {is_digit(C)}.
 csyms([C|Cs]) --> [C], {is_digit(C)}, csyms(Cs).
 csyms([]) --> [].
