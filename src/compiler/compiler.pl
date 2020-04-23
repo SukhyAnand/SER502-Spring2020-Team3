@@ -5,7 +5,7 @@
 % @version 1.2
 % @purpose A lexer to parse the source file and generate tokens and
 %          parser to consume the tokens to generate the parse tree.
-% @date 04/19/2020
+% @date 04/22/2020
 
 %------------------------------------------------------------------------------------------------------------------------
 % LEXICAL ANALYZER
