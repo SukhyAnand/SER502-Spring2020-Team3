@@ -275,6 +275,7 @@ id(t_id(v)) --> [v].
 
 % Rules for integer constant
 num_constant(t_num_const(NC)) --> [NC], {number(NC)}.
+
 %num_constant(t_num_const(NC)) --> [NC], {rangeValidatorInt(NC)}.
 
 % Rules for character constant
