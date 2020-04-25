@@ -134,11 +134,12 @@ parser(t_parser(P)) --> program(P).
 % Rule for program
 program(t_program(B)) --> block(B).
 
-% Rule for block
-block(t_block(DL,S)) --> declaration_list(DL),[";"],statement(S).
-block(t_block(DL)) --> declaration_list(DL),[";"].
-block(t_block(S)) --> statement(S).
-block(t_block("epsilon")) --> [].
+% Rule for Block
+block(t_block(DL,SL)) --> declaration_list(DL),[";"],statement_list(SL).
+block(t_decl_block(DL)) --> declaration_list(DL),[";"].
+block(t_stmt_block(SL)) --> statement_list(SL).
+block(t_eps_block("epsilon")) --> [].
+
 
 % Rules for declaration list
 declaration_list(t_declaration_list(D,DL)) --> declaration(D), [";"], declaration_list(DL).
@@ -303,8 +304,7 @@ multiplication_operation(t_mod_op("%")) --> ["%"].
 unary_expression(t_unary_expr(UO,UE)) --> unary_operation(UO), unary_expression(UE).
 unary_expression(F) --> factor(F).
 
-% Rules for unary operation
-unary_operation(t_unary_op("-")) --> ["-"].
+% Rules for unary operation(-1, +3)unary_operation(t_unary_op("-")) --> ["-"].
 unary_operation(t_unary_op("+")) --> ["+"].
 
 % Rules for factor
@@ -316,8 +316,8 @@ mutable(t_mutable(ID)) --> id(ID).
 %mutable(t_mutable(M,E)) --> mutable(M), ["["], expression(E), ["]"].
 
 % Rules for immutable objects
-immutable(t_immutable(E)) --> ["("], expression(E), [")"].
-immutable(t_immutable(CONST)) --> constant(CONST).
+immutable(t_eval_expr(E)) --> ["("], expression(E), [")"].
+immutable(t_const(CONST)) --> constant(CONST).
 
 % Rules for constant
 constant(NC) --> num_constant(NC).
