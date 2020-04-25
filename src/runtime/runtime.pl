@@ -16,21 +16,21 @@ lookup(Id, [(Id,Type,Val)|_],Type,Val).
 lookup(Id, [_|T],Type, Val):- lookup(Id,T,Type,Val). 
 
 update(Id, Type, NewVal, [], [(Id, Type,NewVal)]). %if not found
-update(Id, _Type,NewVal, [(Id,_Type,_Val)|T], [(Id, _Type,NewVal)|T]). %if found
+update(Id, Type,NewVal, [(Id,Type,_Val)|T], [(Id,Type,NewVal)|T]). %if found
 
 update(Id, Type, NewVal, [H|T], [H|R]):-
-    H\=(Id,_,_),update(Id, Type, NewVal,T,R).
+    H\=(Id,,),update(Id, Type, NewVal,T,R).
 
 
 
-interpreter(t_parser(P)) :- eval_program(P).
+interpreter(P) :- eval_program(P).
 
 eval_program(t_program(B)) :- eval_block(B,[],_).
 
 %Block Evaluations
-eval_block(t_block(DL,S),Env, EnvF) :- eval_dec_list(DL,Env,Env1), eval_stmt(S,Env1,EnvF).
+eval_block(t_block(DL,S),Env, EnvF) :- eval_dec_list(DL,Env,Env1), eval_stmt_list(S,Env1,EnvF).
 eval_block(t_decl_block(DL),Env, EnvF) :- eval_dec_list(DL,Env,EnvF).
-eval_block(t_stmt_block(S),Env, EnvF) :- eval_stmt(S,Env,EnvF).
+eval_block(t_stmt_block(S),Env, EnvF) :- eval_stmt_list(S,Env,EnvF).
 eval_block(t_eps_block("epsilon"),Env, Env).	
 
 
@@ -59,14 +59,14 @@ eval_var_dec_list(VDIN,Type,Env,EnvF):-eval_var_dec_initialize(VDIN,Type,Env,Env
 %if not found in env
 eval_var_dec_initialize(t_variable_declaration(Id),Type,Env,EnvF):- 
     eval_var_dec_id(Id,Idname),
-    \+lookup(Idname,Env,_,_),
+    \+lookup(Idname,Env,,),
     type_default(Type,Def_Val),
     update(Idname,Type,Def_Val,Env,EnvF).
 
 %if not found in env ie re-declaring a variable
 eval_var_dec_initialize(t_variable_declaration(Id),_,Env,Env):- 
     eval_var_dec_id(Id,Idname),
-    lookup(Idname,Env,_,_),
+    lookup(Idname,Env,,),
     write(Id), write(" Already exist"),
     writeln("Give new variable name!"),
     fail.
@@ -74,14 +74,14 @@ eval_var_dec_initialize(t_variable_declaration(Id),_,Env,Env):-
 %if not found in env
 eval_var_dec_initialize(t_variable_initialize(Id,SE),Type,Env,EnvF):- 
     eval_var_dec_id(Id,Idname),
-    \+lookup(Idname,Env,_,_),
+    \+lookup(Idname,Env,,),
     eval_simple_expr(SE,Env,Env1,Val),
     update(Idname,Type,Val,Env1,EnvF).
 
 %if not found in env ie re-declaring a variable
-eval_var_dec_initialize(t_variable_initialize(Id,_),_,Env,Env):- 
+eval_var_dec_initialize(t_variable_initialize(Id,),,Env,Env):- 
     eval_var_dec_id(Id,Idname),
-    lookup(Idname,Env,_,_),
+    lookup(Idname,Env,,),
     write(Id), write(" Already exist"),
     writeln("Give new variable name!"),
     fail.
@@ -97,6 +97,10 @@ eval_stmt(SS,Env,EnvF) :- eval_sel_stmt(SS,Env,EnvF).
 eval_stmt(t_iter_stmt(IS),Env,EnvF) :- eval_iter_stmt(IS,Env,EnvF).
 eval_stmt(t_print_stmt(PS),Env,EnvF) :- eval_print_stmt(PS,Env,EnvF).
 
+eval_print_stmt(PS,Env,EnvF):- 
+    eval_simple_expr(PS,Env,EnvF,V),
+    write(V).
+    
 
 % Expression Statement Evaluator
 
@@ -108,8 +112,10 @@ eval_expr_stmt(t_expression_statement(;),Env,Env).
 
 eval_cmpnd_stmt(t_cmpnd_stmt(E),Env,EnvF) :- eval_stmt_list(E,Env,EnvF).
 
-eval_stmt_list(t_statement_list(SL,S),Env,EnvF) :- eval_stmt_list(SL,Env,Env1), eval_stmt(S,Env1,EnvF).
-eval_stmt_list(t_statement_list("epsilon"),Env, Env).	
+eval_stmt_list(t_stmt_list(S,SL),Env,EnvF) :- eval_stmt(S,Env,Env1),eval_stmt_list(SL,Env1,EnvF).
+eval_stmt_list(t_stmt_list("epsilon"),Env, Env).	
+eval_stmt_list(S,Env,EnvF) :- eval_stmt(S,Env,EnvF).
+
 
 
 
@@ -177,8 +183,8 @@ iteration_range(t_iteration_range(ID,SE1,SE2)) -->
     simple_expression(SE2),[")"].
  * */
 
-eval_iter_range(t_iteration_range(ID1,SE1,ID2,RO,SE2), Env, EnvF, Val) :-
-    eval_simple_expr(SE,Env,Env1,Val), 
+eval_iter_range(t_iteration_range(SE), Env, EnvF, Val) :-
+    eval_simple_expr(SE,Env,EnvF,Val).
 
 eval_iter_stmt(t_while_statement(SE,_S), Env, EnvF) :- 
     eval_simple_expr(SE,Env,EnvF,Val), boolval(Val, false).
@@ -262,7 +268,9 @@ eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2),S), Env, EnvF) :-
     lookup(Idname, Env, "int", Val),
     eval_simple_expr(SE1, Env, Env1, Val1),
     eval_simple_expr(SE1, Env1, Env2, Val2),
-    Val1 < Val2, Val <= Val1, Val1 < Val2, 
+    Val1 < Val2, 
+    Val =< Val1, 
+    Val1 < Val2, 
     eval_stmt(S, Env2, Env3),
     eval_expr(t_increment(t_mutable(ID1)), Env3, Env4, _Val),
     eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2), S), Env4, EnvF).
@@ -279,51 +287,53 @@ eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2),S), Env, EnvF) :-
 
 %Assignment expression
 eval_expr(t_assignment(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, Type , _),
     update(Idname, Type , Val, Env1, EnvF).
+
 % += Expression 
 eval_expr(t_addassign(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, "int" , Val1),
     %number(Val),
     Val2 is Val1 + Val,
     update(Idname, "int" , Val2, Env1, EnvF).
 /*
 eval_expr(t_addassign(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, "string" , Val1),
     Val2 is Val1 + Val,
     update(Idname, "string" , Val2, Env1, EnvF).
 **/
+
 % -= Expression
 eval_expr(t_subassign(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, "int" , Val1),
     Val2 is Val1 - Val,
     update(Idname, "int" , Val2, Env1, EnvF). 
 % *= Expression
 eval_expr(t_multassign(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, "int"  , Val1),
     Val2 is Val1 * Val,
     update(Idname, "int"  , Val2, Env1, EnvF). 
 % /= Expression
 eval_expr(t_divassign(M,E), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname), eval_expr(E, Env, Env1, Val),
+    eval_mutable_id(M, Idname), eval_expr(E, Env, Env1, Val),
     lookup(Idname, Env1, "int"  , Val1),
     Val2 is Val1 / Val,
     update(Idname, "int"  , Val2, Env1, EnvF). 
 % increment expr
 eval_expr(t_increment(M), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname),
+    eval_mutable_id(M, Idname),
     lookup(Idname, Env, "int" , Val),
     Val1 is Val + 1,
     update(Idname, "int" , Val1, Env, EnvF).
 
 % decrement expr
 eval_expr(t_decrement(M), Env, EnvF, Val) :- 
-    eval_mutable(M, Idname),
+    eval_mutable_id(M, Idname),
     lookup(Idname, Env, "int" , Val),
     Val1 is Val - 1,
     update(Idname, "int" , Val1, Env, EnvF).
@@ -335,7 +345,7 @@ eval_simple_expr(t_or_expr(SE,AE), Env, Env, Val) :-
     eval_simple_expr(SE,Env, Env, Val1), 
     boolval(Val1, Val2),
     eval_and_expr(AE,Env, Env, Val3), 
-    Val is Val2 or Val3.
+    Val is Val2 + Val3.
 %or expression
 eval_simple_expr(AE , Env, Env, Val) :-
     eval_and_expr(AE, Env, Env, Val).
@@ -345,7 +355,7 @@ eval_and_expr(t_and_expr(SE,AE), Env, Env, Val) :-
     eval_and_expr(SE,Env, Env, Val1),
     eval_unary_rel_expr(AE,Env, Env, Val2),
     boolval(Val2, Val3),
-    Val is Val1 and Val3.
+    Val is Val1 , Val3.
 %and expression
 eval_and_expr(AE , Env, Env, Val) :-
     eval_unary_rel_expr(AE, Env, Env, Val).
@@ -359,6 +369,124 @@ eval_unary_rel_expr(t_not_expr(URL),Env, EnvF, Val) :-
 eval_unary_rel_expr(RL ,Env, EnvF, Val) :-
     eval_rel_expr(RL, Env, EnvF, Val).
     
+
+% Relational Expression Evaluations
+
+eval_rel_expr(t_relational_expr(SE1,RO,SE2),Env,EnvF,Val):-
+    eval_sum_expr(SE1,Env,Env1,Val1),
+    eval_sum_expr(SE2,Env1,EnvF,Val2),
+    eval_rel_op(RO,Val1,Val2,Val).
+eval_rel_expr(SE,Env,EnvF,Val):-
+     eval_sum_expr(SE,Env,EnvF,Val).
+
+% Relational Operator Evaluations
+/*
+eval_rel_op(t_less_than_eq_op("<="),V1,V2,V):-
+    (V1=<V2 -> V is true; V is false).
+eval_rel_op(t_less_than_op("<"),V1,V2,V):-
+    (V1<V2 -> V is true; V is false).    
+eval_rel_op(t_greater_than_eq_op(">="),V1,V2,V):-
+    (V1>=V2 -> V is true; V is false).
+eval_rel_op(t_greater_than_op(">"),V1,V2,V):-
+    (V1>V2 -> V is true; V is false).  
+eval_rel_op(t_eq_op("=="),V1,V2,V):-
+    (V1==V2 -> V is true; V is false).
+eval_rel_op(t_not_eq_op("!="),V1,V2,V):-
+    (V1==V2 -> V is false; V is true). 
+*/
+
+
+eval_rel_op(t_less_than_eq_op("<="),V1,V2,true):- V1=<V2.
+eval_rel_op(t_less_than_eq_op("<="),V1,V2,false):- V1>V2.
+
+eval_rel_op(t_less_than_op("<"),V1,V2,true):- V1<V2.
+eval_rel_op(t_less_than_op("<"),V1,V2,false):- V1>=V2.
+
+
+eval_rel_op(t_greater_than_eq_op(">="),V1,V2,true):- V1>=V2.
+eval_rel_op(t_greater_than_eq_op(">="),V1,V2,false):- V1<V2.
+
+eval_rel_op(t_greater_than_op(">"),V1,V2,true):- V1>V2.
+eval_rel_op(t_greater_than_op(">"),V1,V2,false):- V1=<V2.
+
+
+eval_rel_op(t_eq_op("=="),V1,V2,true):- V1==V2.
+eval_rel_op(t_eq_op("=="),V1,V2,false):- V1=\=V2.
+
+eval_rel_op(t_not_eq_op("!="),V1,V2,true):- V1=\=V2.
+eval_rel_op(t_not_eq_op("!="),V1,V2,false):- V1==V2.
+
+% Sum Expression Evaluations
+
+eval_sum_expr(t_sum_expr(SE,SO,ME),Env,EnvF,Val):-
+    eval_sum_expr(SE,Env,Env1,Val1),
+    eval_mult_expr(ME,Env1,EnvF,Val2),
+    eval_sum_op(SO,Val1,Val2,Val).
+eval_sum_expr(ME,Env,EnvF,Val):-
+     eval_mult_expr(ME,Env,EnvF,Val).
+
+% Sum Operator Evaluations
+
+eval_sum_op(t_add_op("+"),Val1,Val2,Val):-
+    Val is Val1+Val2.
+eval_sum_op(t_sub_op("-"),Val1,Val2,Val):-
+    Val is Val1-Val2.
+
+
+% Mult Expression Evaluations
+
+eval_mult_expr(t_mult_expr(ME,MO,UE),Env,EnvF,Val):-
+    eval_mult_expr(ME,Env,Env1,Val1),
+    eval_unary_expr(UE,Env1,EnvF,Val2),
+    eval_mult_op(MO,Val1,Val2,Val).
+eval_mult_expr(UE,Env,EnvF,Val):-
+     eval_unary_expr(UE,Env,EnvF,Val).
+
+% Mult Operator Evaluations
+
+eval_mult_op(t_mult_op("*"),Val1,Val2,Val):-
+    Val is Val1*Val2.
+eval_mult_op(t_div_op("/"),Val1,Val2,Val):-
+    Val is Val1/Val2.
+eval_mult_op(t_mod_op("%"),Val1,Val2,Val):-
+    Val is mod(Val1,Val2).
+
+
+eval_unary_expr(t_unary_expr(UO,UE),Env,EnvF,Val):-
+    eval_unary_expr(UE,Env,EnvF,Val1),
+    eval_unary_op(UO,Val1,Val).
+eval_unary_expr(F,Env,EnvF,Val):-eval_factor(F,Env,EnvF,Val).
+
+eval_unary_op(t_unary_op("-"),Val1,Val2):-Val2 is (-1)* Val1.
+eval_unary_op(t_unary_op("+"),Val1,Val1).
+
+
+
+eval_factor(IM, Env,EnvF,Val):- eval_immutable(IM, Env,EnvF,Val).
+
+eval_factor(M,Env,Env, Val):- eval_mutable(M,Env, Env, Val).
+
+
+eval_mutable_id(t_mutable(M), Val) :- eval_id_name(M,Val).
+
+eval_mutable(t_mutable(M), Env, Env, Val) :- eval_id(M,Env,Env,Val).
+
+eval_id_name(t_id(I),I).
+eval_id(t_id(I),Env,Env,Val):- lookup(I,Env,_,Val).
+
+eval_immutable(t_eval_expr(E), Env,EnvF,Val):-eval_expr(E, Env,EnvF,Val).
+eval_immutable(t_const(X),,,Val):- eval_const(X,Val).
+
+
+
+eval_const(NC,Val):- eval_num_const(NC,Val).
+eval_const(t_bool_const("true"),true).
+eval_const(t_bool_const("false"),false).
+
+
+eval_num_const(t_num_const(X),X).
+
+
 
 
 
@@ -375,8 +503,6 @@ boolval("",false).
 boolval(false,false).
 boolval(Val,true) :- Val \= 0, Val \= '', Val \= "", Val \= false. 
 
-eval_mutable(t_mutable(M), Val) :- eval_id_name(M,Val).
-eval_id_name(t_id(I),I).
 
 
 % Default Data Type Value Evaluations
