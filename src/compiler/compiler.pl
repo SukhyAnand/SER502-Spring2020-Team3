@@ -39,12 +39,10 @@ yepl(FileName) :- open(FileName, read, InStream),
 %------------------------------------------------------------------------------------------------------------------------
 
 % Keywords
-token("static") --> "static".
 token("if") --> "if".
 token("elsif") --> "elsif".
 token("else") --> "else".
 token("print") --> "print".
-token("size") --> "size".
 
 % Data Types
 token("int") --> "int".
