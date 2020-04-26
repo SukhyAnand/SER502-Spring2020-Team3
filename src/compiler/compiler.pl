@@ -138,7 +138,6 @@ block(t_decl_block(DL)) --> declaration_list(DL),[";"].
 block(t_stmt_block(SL)) --> statement_list(SL).
 block(t_eps_block("epsilon")) --> [].
 
-
 % Rules for declaration list
 declaration_list(t_declaration_list(D,DL)) --> declaration(D), [";"], declaration_list(DL).
 declaration_list(D) --> declaration(D).
@@ -189,7 +188,6 @@ compound_statement(t_empty_cmpnd_stmt) --> ["{"], ["}"].
 % Rules for statement list
 statement_list(t_stmt_list(SL,S)) --> statement_list(SL), statement(S).
 statement_list(S) --> statement(S).
-%statement_list(t_stmt_list("epsilon")) --> [].
 
 % Rules for else if list
 else_if_list(t_else_if_list(ELIFL,ELIF)) --> 
@@ -197,8 +195,7 @@ else_if_list(t_else_if_list(ELIFL,ELIF)) -->
 else_if_list(t_else_if(SE,S)) --> 
     ["elseif"], ["("],
     simple_expression(SE), [")"],
-    statement(S).	
-%else_if_list(t_else_if_list("epsilon")) --> [].
+    statement(S).
 
 % Rules for selection statement
 selection_statement(t_sel_stmt(SE,S,ELIFL)) --> 
@@ -229,7 +226,6 @@ iteration_range(t_iter_range(ID2,RO,SE2)) -->
     mutable(ID2), relational_operation(RO),
     simple_expression(SE2), [";"], [")"].
 
-
 iteration_range(t_iter_range(ID1,SE1,ID2,RO,SE2,E)) --> 
     ["("], mutable(ID1), ["="], simple_expression(SE1), [";"], 
     mutable(ID2), relational_operation(RO), simple_expression(SE2),
@@ -245,14 +241,7 @@ iteration_statement(t_while_stmt(SE,S)) -->
 iteration_statement(t_for_stmt(IR,S)) --> 
     ["for"], iteration_range(IR), statement(S).
 
-
-
-
-
-
-
-
-% Rules for PRINT statement
+% Rules for print statement
 print_statement(t_print_stmt(SE)) --> ["print"], ["("], simple_expression(SE), [")"], [";"].
 
 % Rules for expression
@@ -282,7 +271,7 @@ unary_relational_expression(URL) --> relational_expression(URL).
 
 % Rules for relational expression
 relational_expression(t_relational_expr(SE1,RO,SE2)) --> 
-	sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
+    sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
 relational_expression(SE) --> sum_expression(SE).
 
 % Rules for relational operation
@@ -325,7 +314,6 @@ factor(M) --> mutable(M).
 
 % Rules for mutable objects
 mutable(t_mutable(ID)) --> id(ID).
-%mutable(t_mutable(M,E)) --> mutable(M), ["["], expression(E), ["]"].
 
 % Rules for immutable objects
 immutable(t_eval_expr(E)) --> ["("], expression(E), [")"].
@@ -333,32 +321,26 @@ immutable(t_const(CONST)) --> constant(CONST).
 
 % Rules for constant
 constant(NC) --> num_constant(NC).
-%constant(CC) --> char_constant(CC).
-%constant(SC) --> string_constant(SC).
+constant(SC) --> string_constant(SC).
 constant(t_bool_const("true")) --> ["true"].
 constant(t_bool_const("false")) --> ["false"].
 
 % Rules for identifier
-%id(t_id(I)) --> [I], {atom(I)}.
-%id(t_id(I)) --> [I], {re_match("^[a-zA-Z_$][a-zA-Z_$0-9]*$", I)}.
-%id(t_id(I)) --> [I], {re_match("^[a-z]+", I)}.
-id(t_id(x)) --> [x].
-id(t_id(y)) --> [y].
-id(t_id(z)) --> [z].
-id(t_id(u)) --> [u].
-id(t_id(v)) --> [v].
+id(t_id(L)) --> [L], {
+    atom_chars(L, Cs),
+    length(Cs, N),
+    length(Lowers,N),
+    maplist(=(lower), Lowers),
+    maplist(char_type, Cs, Lowers)}.
 
 % Rules for integer constant
-num_constant(t_num_const(NC)) --> [NC], {number(NC)}.
-%num_constant(t_num_const(NC)) --> [NC], {rangeValidatorInt(NC)}.
-
-% Rules for character constant
-char_constant(t_char_const(CC)) --> [CC], {atom(CC)}.
-%char_constant(t_char_const(CC)) --> [CC], {re_match("'[\x00-\x7F]'", CC)}.
+num_constant(t_num_const(L)) --> [L], {
+    atom_chars(L, Cs),
+    length(Cs, N),
+    length(Lowers,N),
+    maplist(=(digit), Lowers),
+    maplist(char_type, Cs, Lowers)}.
 
 % Rules for string constant
-string_constant(t_string_const(SC)) --> [SC], {atom(SC)}.
-%string_constant(t_string_const(SC)) --> [SC], {re_match("\"[\x00-\x7F]*\"", SC)}.
+string_constant(t_string_const(SC)) --> ["\""], [SC2], {atom_string(SC, SC2)}, ["\""], !.
 
-% Predicate for validating integer range
-%rangeValidatorInt(NC) :- NC >= -2147483648, NC =< 2147483647.
