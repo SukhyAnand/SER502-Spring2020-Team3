@@ -2,10 +2,10 @@
 % @author Aihaab Shaikh
 % @author Sakshi Jain
 % @author Sukhpreet Singh Anand
-% @version 1.4
+% @version 1.6
 % @purpose A lexer to parse the source file and generate tokens and
 %          parser to consume the tokens to generate the parse tree.
-% @date 04/19/2020
+% @date 04/25/2020
 
 %------------------------------------------------------------------------------------------------------------------------
 % IMPORTS
@@ -222,23 +222,37 @@ selection_statement(t_sel_stmt(SE,S1,S2)) -->
 
 % Rules for iteration range
 iteration_range(t_iter_range(ID1,SE1,ID2,RO,SE2)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO),
+    ["("], mutable(ID1), ["="], simple_expression(SE1), [";"], 
+    mutable(ID2), relational_operation(RO),
     simple_expression(SE2), [";"], [")"].
+
+iteration_range(t_iter_range(ID2,RO,SE2)) --> 
+    ["("], [";"], 
+    mutable(ID2), relational_operation(RO),
+    simple_expression(SE2), [";"], [")"].
+
+
 iteration_range(t_iter_range(ID1,SE1,ID2,RO,SE2,E)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO), simple_expression(SE2),
+    ["("], mutable(ID1), ["="], simple_expression(SE1), [";"], 
+    mutable(ID2), relational_operation(RO), simple_expression(SE2),
     [";"], expression(E), [")"].
 iteration_range(t_iter_range(ID,SE1,SE2)) -->  
-    id(ID), ["in"], ["range"], ["("],
+    mutable(ID), ["in"], ["range"], ["("],
     simple_expression(SE1), [","],
     simple_expression(SE2), [")"].
 
 % Rules for iteration statement
-iteration_statement(t_iter_stmt(SE,S)) --> 
+iteration_statement(t_while_stmt(SE,S)) --> 
     ["while"], ["("], simple_expression(SE), [")"], statement(S).
-iteration_statement(t_iter_stmt(IR,S)) --> 
+iteration_statement(t_for_stmt(IR,S)) --> 
     ["for"], iteration_range(IR), statement(S).
+
+
+
+
+
+
+
 
 % Rules for PRINT statement
 print_statement(t_print_stmt(SE)) --> ["print"], ["("], simple_expression(SE), [")"], [";"].
