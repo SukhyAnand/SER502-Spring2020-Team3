@@ -2,7 +2,7 @@
 % @author Sakshi Jain
 % @author Aditya Bajaj
 % @author Aihaab Shaikh
-% @version 1.1
+% @version 1.2
 % @purpose A runtime environment which parses the intermediate abstract syntax tree code and executes the program
 % @date 04/25/2020
 
@@ -97,7 +97,7 @@ eval_var_dec_id(I,Idname):- eval_id_name(I,Idname).
 eval_stmt(ES,Env,EnvF) :- eval_expr_stmt(ES,Env,EnvF).
 eval_stmt(CS,Env,EnvF) :- eval_cmpnd_stmt(CS,Env,EnvF).
 eval_stmt(SS,Env,EnvF) :- eval_sel_stmt(SS,Env,EnvF).
-eval_stmt(t_iter_stmt(IS),Env,EnvF) :- eval_iter_stmt(IS,Env,EnvF).
+eval_stmt(IS,Env,EnvF) :- eval_iter_stmt(IS,Env,EnvF).
 eval_stmt(t_print_stmt(PS),Env,EnvF) :- eval_print_stmt(PS,Env,EnvF).
 
 eval_print_stmt(PS,Env,EnvF):- 
@@ -133,26 +133,19 @@ eval_sel_stmt(t_sel_stmt(SE,_S),Env,EnvF) :-
     eval_simple_expr(SE,Env,EnvF,Val),
     boolval(Val,false).
 
-/*
-%if (true), run stmt ; elseif exists but no else
-eval_sel_stmt(t_sel_stmt(SE,S,_E),Env,EnvF) :-
-    eval_simple_expr(SE,Env,Env1,Val),
-    boolval(Val,true),
-    eval_stmt(S,Env1,EnvF).
-*/
 %if (false) ; elseif exists but no else
 eval_sel_stmt(t_sel_stmt(SE,_S,E),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val),
     boolval(Val,false),
     eval_elseif(E,Env1,EnvF,_Val).
    
-    
+%if (true), else    
 eval_sel_stmt(t_sel_stmt(SE,S1,_E,_S2),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val),
     boolval(Val,true),
     eval_stmt(S1,Env1,EnvF).
- %   eval_elseif(E,Env1,EnvF).
 
+%if (false), elseif(false), else    
 eval_sel_stmt(t_sel_stmt(SE,_S1,E,S2),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val1),
     boolval(Val1,false),
@@ -160,8 +153,6 @@ eval_sel_stmt(t_sel_stmt(SE,_S1,E,S2),Env,EnvF) :-
     boolval(Val2,false),
     eval_stmt(S2,Env2,EnvF).
     
-
-
 
 %if (true), run stmt  ; else stmt ; no elseif stmt is present
 eval_sel_stmt(t_sel_stmt(SE,S1,_S2),Env,EnvF) :-
@@ -187,6 +178,7 @@ eval_elseif(t_else_if_list(EL,_E),Env,EnvF,Val) :-
     eval_elseif(t_else_if_list(EL),Env,EnvF,Val),
     boolval(Val,true).
 
+% rules for processing elseif list when it has only 1 elseif block
 eval_elseif(t_else_if_list(EL,_E),Env,EnvF,Val) :- 
     eval_elseif(EL,Env,EnvF,Val),
     boolval(Val,true),!.
@@ -210,48 +202,14 @@ eval_elseif(t_else_if(SE,_S),Env,EnvF,false) :-
 
 
 
-
-
-
-
-
-
-
-
-
-
-/*
- * % Rules for iteration statement
-iteration_statement(t_iteration_statement(SE,S)) --> 
-    ["while"],["("], simple_expression(SE), [")"], statement(S).
-iteration_statement(t_iteration_statement(IR,S)) --> 
-    ["for"], iteration_range(IR), statement(S).
- * 
- * % Rules for iteration range
-iteration_range(t_iteration_range(ID1,SE1,ID2,RO,SE2)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO),
-    simple_expression(SE2),[";"], [")"].
-iteration_range(t_iteration_range(ID1,SE1,ID2,RO,SE2,E)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO), simple_expression(SE2),
-    [";"],expression(E),[")"].
-iteration_range(t_iteration_range(ID,SE1,SE2)) -->  
-    id(ID), ["in"],["range"],["("],
-    simple_expression(SE1),[","],
-    simple_expression(SE2),[")"].
- * */
-
-eval_iter_range(t_iteration_range(SE), Env, EnvF, Val) :-
-    eval_simple_expr(SE,Env,EnvF,Val).
-
-eval_iter_stmt(t_while_statement(SE,_S), Env, EnvF) :- 
+% While Statements 
+eval_iter_stmt(t_while_stmt(SE,_S), Env, EnvF) :- 
     eval_simple_expr(SE,Env,EnvF,Val), boolval(Val, false).
 
-eval_iter_stmt(t_while_statement(SE,S), Env, EnvF) :- 
+eval_iter_stmt(t_while_stmt(SE,S), Env, EnvF) :- 
     eval_simple_expr(SE,Env,Env1,Val), boolval(Val, true), 
     eval_stmt(S,Env1,Env2), 
-    eval_iter_stmt(t_while_statement(SE,S), Env2, EnvF).
+    eval_iter_stmt(t_while_stmt(SE,S), Env2, EnvF).
 
 %eval_iter_stmt(t_for_statement(IR,_S), Env, EnvF) :- 
 %    eval_iter_range(IR,Env,EnvF,Val), boolval(Val, false).
@@ -261,69 +219,81 @@ eval_iter_stmt(t_while_statement(SE,S), Env, EnvF) :-
 %    eval_stmt(S,Env1,Env2), 
 %    eval_iter_stmt(t_for_statement(IR,S), Env2, EnvF, False).
 
+
+
 % for (; i < 10;)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), _S), Env, EnvF) :-
-    eval_id_name(ID2, Idname), lookup(Idname, Env, "int", _),
+eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), _S), Env, EnvF) :-
+    eval_mutable_id(ID2, Idname), lookup(Idname, Env, "int", _),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env, EnvF, Val), boolval(Val, false).
 
 % for (; i < 10;)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), S), Env, EnvF) :-
-    eval_id_name(ID2, Idname), lookup(Idname, Env, "int", _),
+eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), S), Env, EnvF) :-
+    eval_mutable_id(ID2, Idname), lookup(Idname, Env, "int", _),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env, Env1, Val), boolval(Val, true),
     eval_stmt(S, Env1, Env2),
-    eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), S), Env2, EnvF).
+    eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), S), Env2, EnvF).
+
 
 %for (i = 0; i < 10;)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,ID2,RO,SE2),_S), Env, EnvF) :-
-    eval_simple_expr(SE1, Env, Env1, Val1), eval_id_name(ID1, Idname), 
+eval_iter_stmt(t_for_stmt(t_iter_range(ID1,SE1,ID2,RO,SE2),_S), Env, EnvF) :-
+    eval_simple_expr(SE1, Env, Env1, Val1), eval_mutable_id(ID1, Idname), 
     lookup(Idname, Env1, "int", _),
     update(Idname, "int", Val1, Env1, Env2),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env2, EnvF, Val2), boolval(Val2, false).
 
 %for (i = 0; i < 10;)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,ID2,RO,SE2),S), Env, EnvF) :-
-	eval_simple_expr(SE1, Env, Env1, Val1), eval_id_name(ID1, Idname), 
+eval_iter_stmt(t_for_stmt(t_iter_range(ID1,SE1,ID2,RO,SE2),S), Env, EnvF) :-
+	eval_simple_expr(SE1, Env, Env1, Val1), eval_mutable_id(ID1, Idname), 
     lookup(Idname, Env1, "int", _),
     update(Idname, "int", Val1, Env1, Env2),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env2, Env3, Val2), boolval(Val2, true),
     eval_stmt(S, Env3, Env4),
-    eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), S), Env4, EnvF).
+    eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), S), Env4, EnvF).
 
 % for (i < 10; i++)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2,_E), _S), Env, EnvF) :-
-    eval_id_name(ID2, Idname), lookup(Idname, Env, "int", _),
+eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2,_E), _S), Env, EnvF) :-
+    eval_mutable_id(ID2, Idname), lookup(Idname, Env, "int", _),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env, EnvF, Val), boolval(Val, false).
 
 % for (i < 10; i++)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2,E), S), Env, EnvF) :-
-    eval_id_name(ID2, Idname), lookup(Idname, Env, "int", _),
+eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2,E), S), Env, EnvF) :-
+    eval_mutable_id(ID2, Idname), lookup(Idname, Env, "int", _),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env, Env1, Val), boolval(Val, true),
     eval_stmt(S, Env1, Env2),
     eval_expr(t_expression(E), Env2, Env3, _Val),
-    eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), S), Env3, EnvF).
+    eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), S), Env3, EnvF).
+
+
+
+
 
 % for (i = 0; i < 10; i++)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,ID2,RO,SE2,_E),_S), Env, EnvF) :-
-    eval_simple_expr(SE1, Env, Env1, Val1), eval_id_name(ID1, Idname), 
+eval_iter_stmt(t_for_stmt(t_iter_range(ID1,SE1,ID2,RO,SE2,_E),_S), Env, EnvF) :-
+    eval_simple_expr(SE1, Env, Env1, Val1), eval_mutable_id(ID1, Idname), 
     lookup(Idname, Env1, "int", _),
     update(Idname, "int", Val1, Env1, Env2),
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env2, EnvF, Val2), boolval(Val2, false).
 
 % for (i = 0; i < 10; i++)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,ID2,RO,SE2,E),S), Env, EnvF) :-
-	eval_simple_expr(SE1, Env, Env1, Val1), eval_id_name(ID1, Idname), 
+eval_iter_stmt(t_for_stmt(t_iter_range(ID1,SE1,ID2,RO,SE2,E),S), Env, EnvF) :-
+	eval_simple_expr(SE1, Env, Env1, Val1), eval_mutable_id(ID1, Idname), 
     lookup(Idname, Env1, "int", _),
     update(Idname, "int", Val1, Env1, Env2),
 %review again!!!!!!!!!!!!
     eval_rel_expr(t_rel_expr(ID2,RO,SE2), Env2, Env3, Val2), boolval(Val2, true),
     eval_stmt(S, Env3, Env4),
 %review again!!!!!!!!!!!
-    eval_expr(t_expression(E), Env4, Env5, _Val),
-    eval_iter_stmt(t_for_statement(t_iteration_range(ID2,RO,SE2), S), Env5, EnvF).
+    eval_expr(t_expr(E), Env4, Env5, _Val),
+    eval_iter_stmt(t_for_stmt(t_iter_range(ID2,RO,SE2), S), Env5, EnvF).
+
+
+
+
+
 
 % for in range (1, 10)
-eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2),S), Env, EnvF) :-
-	eval_id_name(ID1, Idname), 
+eval_iter_stmt(t_for_stmt(t_iter_range(ID1,SE1,SE2),S), Env, EnvF) :-
+	eval_mutable_id(ID1, Idname), 
     lookup(Idname, Env, "int", Val),
     eval_simple_expr(SE1, Env, Env1, Val1),
     eval_simple_expr(SE1, Env1, Env2, Val2),
@@ -332,7 +302,7 @@ eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2),S), Env, EnvF) :-
     Val1 < Val2, 
     eval_stmt(S, Env2, Env3),
     eval_expr(t_increment(t_mutable(ID1)), Env3, Env4, _Val),
-    eval_iter_stmt(t_for_statement(t_iteration_range(ID1,SE1,SE2), S), Env4, EnvF).
+    eval_iter_stmt(t_for_statement(t_iter_range(ID1,SE1,SE2), S), Env4, EnvF).
 
 
 
@@ -431,7 +401,7 @@ eval_unary_rel_expr(RL ,Env, EnvF, Val) :-
 
 % Relational Expression Evaluations
 
-eval_rel_expr(t_relational_expr(SE1,RO,SE2),Env,EnvF,Val):-
+eval_rel_expr(t_rel_expr(SE1,RO,SE2),Env,EnvF,Val):-
     eval_sum_expr(SE1,Env,Env1,Val1),
     eval_sum_expr(SE2,Env1,EnvF,Val2),
     eval_rel_op(RO,Val1,Val2,Val).
@@ -522,19 +492,17 @@ eval_unary_op(t_unary_op("+"),Val1,Val1).
 
 
 eval_factor(IM, Env,EnvF,Val):- eval_immutable(IM, Env,EnvF,Val).
-
 eval_factor(M,Env,Env, Val):- eval_mutable(M,Env, Env, Val).
 
 
 eval_mutable_id(t_mutable(M), Val) :- eval_id_name(M,Val).
-
 eval_mutable(t_mutable(M), Env, Env, Val) :- eval_id(M,Env,Env,Val).
 
 eval_id_name(t_id(I),I).
 eval_id(t_id(I),Env,Env,Val):- lookup(I,Env,_,Val).
 
 eval_immutable(t_eval_expr(E), Env,EnvF,Val):-eval_expr(E, Env,EnvF,Val).
-eval_immutable(t_const(X),_,_,Val):- eval_const(X,Val).
+eval_immutable(t_const(X),Env,Env,Val):- eval_const(X,Val).
 
 
 
