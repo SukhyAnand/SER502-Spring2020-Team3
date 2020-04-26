@@ -2,7 +2,7 @@
 % @author Aihaab Shaikh
 % @author Sakshi Jain
 % @author Sukhpreet Singh Anand
-% @version 1.6
+% @version 1.7
 % @purpose A lexer to parse the source file and generate tokens and
 %          parser to consume the tokens to generate the parse tree.
 % @date 04/25/2020
