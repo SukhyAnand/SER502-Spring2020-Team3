@@ -2,9 +2,9 @@
 % @author Sakshi Jain
 % @author Aditya Bajaj
 % @author Aihaab Shaikh
-% @version 1.0
+% @version 1.1
 % @purpose A runtime environment which parses the intermediate abstract syntax tree code and executes the program
-% @date 04/01/2020
+% @date 04/25/2020
 
 /*
 lookup(Id, [], _Type,_Val):-
@@ -19,9 +19,12 @@ update(Id, Type, NewVal, [], [(Id, Type,NewVal)]). %if not found
 update(Id, Type,NewVal, [(Id,Type,_Val)|T], [(Id,Type,NewVal)|T]). %if found
 
 update(Id, Type, NewVal, [H|T], [H|R]):-
-    H\=(Id,,),update(Id, Type, NewVal,T,R).
+    H\=(Id,_,_),update(Id, Type, NewVal,T,R).
 
-
+runYepl(FileName) :- 
+    open(FileName, read, InStream), 
+    read(InStream, P), 
+    close(InStream), interpreter(P).
 
 interpreter(P) :- eval_program(P).
 
@@ -59,14 +62,14 @@ eval_var_dec_list(VDIN,Type,Env,EnvF):-eval_var_dec_initialize(VDIN,Type,Env,Env
 %if not found in env
 eval_var_dec_initialize(t_variable_declaration(Id),Type,Env,EnvF):- 
     eval_var_dec_id(Id,Idname),
-    \+lookup(Idname,Env,,),
+    \+lookup(Idname,Env,_,_),
     type_default(Type,Def_Val),
     update(Idname,Type,Def_Val,Env,EnvF).
 
 %if not found in env ie re-declaring a variable
 eval_var_dec_initialize(t_variable_declaration(Id),_,Env,Env):- 
     eval_var_dec_id(Id,Idname),
-    lookup(Idname,Env,,),
+    lookup(Idname,Env,_,_),
     write(Id), write(" Already exist"),
     writeln("Give new variable name!"),
     fail.
@@ -74,14 +77,14 @@ eval_var_dec_initialize(t_variable_declaration(Id),_,Env,Env):-
 %if not found in env
 eval_var_dec_initialize(t_variable_initialize(Id,SE),Type,Env,EnvF):- 
     eval_var_dec_id(Id,Idname),
-    \+lookup(Idname,Env,,),
+    \+lookup(Idname,Env,_,_),
     eval_simple_expr(SE,Env,Env1,Val),
     update(Idname,Type,Val,Env1,EnvF).
 
 %if not found in env ie re-declaring a variable
-eval_var_dec_initialize(t_variable_initialize(Id,),,Env,Env):- 
+eval_var_dec_initialize(t_variable_initialize(Id,_),_,Env,Env):- 
     eval_var_dec_id(Id,Idname),
-    lookup(Idname,Env,,),
+    lookup(Idname,Env,_,_),
     write(Id), write(" Already exist"),
     writeln("Give new variable name!"),
     fail.
@@ -99,7 +102,7 @@ eval_stmt(t_print_stmt(PS),Env,EnvF) :- eval_print_stmt(PS,Env,EnvF).
 
 eval_print_stmt(PS,Env,EnvF):- 
     eval_simple_expr(PS,Env,EnvF,V),
-    write(V).
+    writeln(V).
     
 
 % Expression Statement Evaluator
@@ -120,17 +123,30 @@ eval_stmt_list(S,Env,EnvF) :- eval_stmt(S,Env,EnvF).
 
 
 % Selection Statement Evaluator
+%if (true), run stmt
+eval_sel_stmt(t_sel_stmt(SE,S),Env,EnvF) :-
+    eval_simple_expr(SE,Env,Env1,Val),
+    boolval(Val,true),
+    eval_stmt(S,Env1,EnvF).
+%if (false), don't run stmt
+eval_sel_stmt(t_sel_stmt(SE,_S),Env,EnvF) :-
+    eval_simple_expr(SE,Env,EnvF,Val),
+    boolval(Val,false).
 
+/*
+%if (true), run stmt ; elseif exists but no else
 eval_sel_stmt(t_sel_stmt(SE,S,_E),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val),
     boolval(Val,true),
     eval_stmt(S,Env1,EnvF).
-
+*/
+%if (false) ; elseif exists but no else
 eval_sel_stmt(t_sel_stmt(SE,_S,E),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val),
     boolval(Val,false),
     eval_elseif(E,Env1,EnvF,_Val).
-
+   
+    
 eval_sel_stmt(t_sel_stmt(SE,S1,_E,_S2),Env,EnvF) :-
     eval_simple_expr(SE,Env,Env1,Val),
     boolval(Val,true),
@@ -143,23 +159,66 @@ eval_sel_stmt(t_sel_stmt(SE,_S1,E,S2),Env,EnvF) :-
     eval_elseif(E,Env1,Env2,Val2),
     boolval(Val2,false),
     eval_stmt(S2,Env2,EnvF).
+    
+
+
+
+%if (true), run stmt  ; else stmt ; no elseif stmt is present
+eval_sel_stmt(t_sel_stmt(SE,S1,_S2),Env,EnvF) :-
+    eval_simple_expr(SE,Env,Env1,Val),
+    boolval(Val,true),
+    eval_stmt(S1,Env1,EnvF).
+
+%if (false), don't run stmt ; else stmt ; no elseif stmt is present
+eval_sel_stmt(t_sel_stmt(SE,_S1,S2),Env,EnvF) :-
+    eval_simple_expr(SE,Env,Env1,Val),
+    boolval(Val,false),
+    eval_stmt(S2,Env1,EnvF).
+
 
 
 % Elseif Evaluator
-
-eval_elseif(t_else_if_list(E,SE,S),Env,EnvF,Val) :- 
-    eval_elseif(E,Env,Env1,Val),
-    boolval(Val,false),
-    eval_simple_expr(SE,Env1,Env2,Val2),
-    boolval(Val2,true),
-    eval_stmt(S,Env2,EnvF).
-
-eval_elseif(t_else_if_list(E,_SE,_S),Env,EnvF,true) :- 
-    eval_elseif(E,Env,EnvF,Val),
+% multiple elseif lists
+eval_elseif(t_else_if_list(EL,E),Env,EnvF,Val) :- 
+    eval_elseif(t_else_if_list(EL),Env,Env1,Val1),
+    boolval(Val1,false),
+    eval_elseif(E,Env1,EnvF,Val).
+eval_elseif(t_else_if_list(EL,_E),Env,EnvF,Val) :- 
+    eval_elseif(t_else_if_list(EL),Env,EnvF,Val),
     boolval(Val,true).
 
+eval_elseif(t_else_if_list(EL,_E),Env,EnvF,Val) :- 
+    eval_elseif(EL,Env,EnvF,Val),
+    boolval(Val,true),!.
+eval_elseif(t_else_if_list(EL,E),Env,EnvF,Val) :- 
+    eval_elseif(EL,Env,Env1,Val1),
+    boolval(Val1,false),
+    eval_elseif(E,Env1,EnvF,Val).
 
-eval_elseif(t_else_if_list("epsilon"),Env, Env,false).	
+
+%single elseif block (true)
+eval_elseif(t_else_if(SE,S),Env,EnvF,true) :- 
+	eval_simple_expr(SE,Env,Env1,Val),
+    boolval(Val,true),
+    eval_stmt(S,Env1,EnvF).
+%single elseif block (false)
+eval_elseif(t_else_if(SE,_S),Env,EnvF,false) :- 
+	eval_simple_expr(SE,Env,EnvF,Val),
+    boolval(Val,false).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
  * % Rules for iteration statement
@@ -475,7 +534,7 @@ eval_id_name(t_id(I),I).
 eval_id(t_id(I),Env,Env,Val):- lookup(I,Env,_,Val).
 
 eval_immutable(t_eval_expr(E), Env,EnvF,Val):-eval_expr(E, Env,EnvF,Val).
-eval_immutable(t_const(X),,,Val):- eval_const(X,Val).
+eval_immutable(t_const(X),_,_,Val):- eval_const(X,Val).
 
 
 
