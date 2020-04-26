@@ -86,6 +86,7 @@ token("-") --> "-".
 token(";") --> ";".
 token(",") --> ",".
 token(".") --> ".".
+token("\"") --> "\"".
 
 % Paranthesis
 token("[") --> "[".
