@@ -2,10 +2,10 @@
 % @author Aihaab Shaikh
 % @author Sakshi Jain
 % @author Sukhpreet Singh Anand
-% @version 1.7
+% @version 1.8
 % @purpose A lexer to parse the source file and generate tokens and
 %          parser to consume the tokens to generate the parse tree.
-% @date 04/25/2020
+% @date 04/27/2020
 
 %------------------------------------------------------------------------------------------------------------------------
 % IMPORTS
@@ -86,7 +86,23 @@ token("-") --> "-".
 token(";") --> ";".
 token(",") --> ",".
 token(".") --> ".".
-token("\"") --> "\"".
+%token("\"") --> "\"".
+token(String, true) -->
+    "\"",
+    stringContent(Codes),
+    "\"",
+    {
+        string_chars(String, Codes)
+    }.
+stringContent([C|Chars]) -->
+    stringChar(C), stringContent(Chars).
+stringContent([]) --> [].
+
+stringChar(0'\n) --> "\\n".
+stringChar(0'\t) --> "\\t".
+stringChar(0'\") --> "\\\"".
+stringChar(0'\") --> "\\\\".
+stringChar(C) --> [C].
 
 % Paranthesis
 token("[") --> "[".
@@ -118,6 +134,7 @@ csymsa([]) --> [].
 tokens([]) --> [].
 tokens(Ts) --> " ", tokens(Ts).
 tokens(Ts) --> "\n", tokens(Ts).
+tokens(["\"", T, "\""|Ts]) --> token(T, true), tokens(Ts).
 tokens([T|Ts]) --> token(T), tokens(Ts).
 
 lexer(Cs, Tokens) :-
@@ -253,7 +270,16 @@ expression(t_multassign(M,E)) --> mutable(M), ["*","="], expression(E).
 expression(t_divassign(M,E)) --> mutable(M), ["/","="], expression(E).
 expression(t_increment(M)) --> mutable(M), ["++"].
 expression(t_decrement(M)) --> mutable(M), ["--"].
-expression(SE) --> simple_expression(SE).
+%expression(SE) --> simple_expression(SE).
+expression(TE) --> ternary_expression(TE).
+
+% Rules for ternary expression
+ternary_expression(t_tern_expr(SE,E1,E2)) -->
+	simple_expression(SE), ["?"],
+    expression(E1), [":"],
+    expression(E2).
+
+ternary_expression(TE) --> simple_expression(TE).
 
 % Rules for simple expression
 simple_expression(t_or_expr(SE,AE)) --> simple_expression(SE), ["or"], and_expression(AE).
@@ -271,7 +297,7 @@ unary_relational_expression(t_not_expr(URL)) --> ["!"], unary_relational_express
 unary_relational_expression(URL) --> relational_expression(URL).
 
 % Rules for relational expression
-relational_expression(t_relational_expr(SE1,RO,SE2)) --> 
+relational_expression(t_rel_expr(SE1,RO,SE2)) --> 
     sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
 relational_expression(SE) --> sum_expression(SE).
 
@@ -333,6 +359,7 @@ id(t_id(L)) --> [L], {
     length(Lowers,N),
     maplist(=(lower), Lowers),
     maplist(char_type, Cs, Lowers)}.
+%identifier(t_identifier(I)) --> [I], {re_match("^[a-z]+", I)}.
 
 % Rules for integer constant
 num_constant(t_num_const(L)) --> [L], {
@@ -340,8 +367,7 @@ num_constant(t_num_const(L)) --> [L], {
     length(Cs, N),
     length(Lowers,N),
     maplist(=(digit), Lowers),
-    maplist(char_type, Cs, Lowers)}.
+    maplist(char_type, Cs, Lowers)},!.
 
 % Rules for string constant
 string_constant(t_string_const(SC)) --> ["\""], [SC2], {atom_string(SC, SC2)}, ["\""], !.
-
