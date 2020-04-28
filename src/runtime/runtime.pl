@@ -11,8 +11,12 @@ lookup(Id, [(Id,Type,Val)|_],Type,Val).
 lookup(Id, [_|T],Type, Val):- lookup(Id,T,Type,Val). 
 
 % Update variable Identifier name, data type and value to the environment
-update(Id, Type, NewVal, [], [(Id, Type,NewVal)]). %if not found
-update(Id, Type,NewVal, [(Id,Type,_Val)|T], [(Id,Type,NewVal)|T]). %if found
+%if not found
+update(Id, Type, NewVal, [], [(Id, Type, NewVal)]) :- type_check(NewVal, Type).
+update(_Id, Type, NewVal, [], []) :- \+type_check(NewVal, Type), writeln("Incorrect value assigned to variable of a given datatype.").
+%if found
+update(Id, Type,NewVal, [(Id,Type,_Val)|T], [(Id,Type,NewVal)|T]) :- type_check(NewVal, Type).
+update(Id, Type,NewVal, [(Id,Type,Val)|T], [(Id,Type,Val)|T]) :- \+type_check(NewVal, Type), writeln("Incorrect value assigned to variable of a given datatype.").
 update(Id, Type, NewVal, [H|T], [H|R]):-
     H\=(Id,_,_),update(Id, Type, NewVal,T,R).
 
@@ -474,10 +478,12 @@ eval_immutable(t_eval_expr(E), Env,EnvF,Val):- eval_expr(E, Env,EnvF,Val).
 eval_immutable(t_const(X),Env,Env,Val):- eval_const(X,Val).
 
 % Evaluators for numeric, bool and string constants
-eval_const(NC,Val):- eval_num_const(NC,Val).
 eval_const(t_bool_const(true),true).
 eval_const(t_bool_const(false),false).
+eval_const(NC,Val):- eval_num_const(NC,Val).
+eval_const(S, Val):- eval_string_const(S,Val).
 eval_num_const(t_num_const(X),X).
+eval_string_const(t_string_const(X),X).
 
 % Not predicate for bool type
 not(true, false).
@@ -491,8 +497,14 @@ boolval(Val,true) :- Val \= 0, Val \= '', Val \= false.
 
 type_check(true,bool).
 type_check(false,bool).
-type_check(I,int) :- number(I).
-type_check(S,string) :- atom_string(A,S), atom(A).
+%type_check(I,int) :- number(I), !.
+type_check(S,string) :- atom_string(A,S), atom(A), \+number(A).
+type_check(I,int) :- 
+    atom_chars(I, Cs),
+    length(Cs, N),
+    length(Lowers,N),
+    maplist(=(digit), Lowers),
+    maplist(char_type, Cs, Lowers).
 
 % Predicate to return default data type value
 type_default(int,0).
