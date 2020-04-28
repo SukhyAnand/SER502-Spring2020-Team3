@@ -32,6 +32,7 @@ yepl(FileName) :- open(FileName, read, InStream),
 		  atom_concat(H, ".ic", X),
 		  open(X, write, OutStream),
 		  write(OutStream, ParseTree),
+		  write(OutStream, '.'),
 		  close(OutStream).
 
 %------------------------------------------------------------------------------------------------------------------------
@@ -55,17 +56,9 @@ token("true") --> "true".
 token("false") --> "false".
 
 % Operators
-token("==") --> "==".
-token("!=") --> "!=".
-token("<=") --> "<=".
-token(">=") --> ">=".
 token("<") --> "<".
 token(">") --> ">".
 token("=") --> "=".
-token("+=") --> "+=".
-token("-=") --> "-=".
-token("*=") --> "*=".
-token("/=") --> "/=".
 token("++") --> "++".
 token("--") --> "--".
 token("or") --> "or".
