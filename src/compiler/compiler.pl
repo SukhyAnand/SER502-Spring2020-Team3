@@ -2,10 +2,10 @@
 % @author Aihaab Shaikh
 % @author Sakshi Jain
 % @author Sukhpreet Singh Anand
-% @version 1.4
+% @version 1.7
 % @purpose A lexer to parse the source file and generate tokens and
 %          parser to consume the tokens to generate the parse tree.
-% @date 04/19/2020
+% @date 04/25/2020
 
 %------------------------------------------------------------------------------------------------------------------------
 % IMPORTS
@@ -26,12 +26,13 @@ yepl(FileName) :- open(FileName, read, InStream),
 		  lexer(Codes, Tokens),
 		  parser(ParseTree, Tokens, []),
 		  close(InStream),
-		  write("Compilation successful!"),
+		  writeln("Compilation successful!"),
 		  split_string(FileName, ".", "", L),
 		  L = [H|_T],
 		  atom_concat(H, ".ic", X),
 		  open(X, write, OutStream),
 		  write(OutStream, ParseTree),
+		  write(OutStream, '.'),
 		  close(OutStream).
 
 %------------------------------------------------------------------------------------------------------------------------
@@ -39,12 +40,10 @@ yepl(FileName) :- open(FileName, read, InStream),
 %------------------------------------------------------------------------------------------------------------------------
 
 % Keywords
-token("static") --> "static".
 token("if") --> "if".
 token("elsif") --> "elsif".
 token("else") --> "else".
 token("print") --> "print".
-token("size") --> "size".
 
 % Data Types
 token("int") --> "int".
@@ -57,17 +56,9 @@ token("true") --> "true".
 token("false") --> "false".
 
 % Operators
-token("==") --> "==".
-token("!=") --> "!=".
-token("<=") --> "<=".
-token(">=") --> ">=".
 token("<") --> "<".
 token(">") --> ">".
 token("=") --> "=".
-token("+=") --> "+=".
-token("-=") --> "-=".
-token("*=") --> "*=".
-token("/=") --> "/=".
 token("++") --> "++".
 token("--") --> "--".
 token("or") --> "or".
@@ -88,6 +79,22 @@ token("-") --> "-".
 token(";") --> ";".
 token(",") --> ",".
 token(".") --> ".".
+token(String, true) -->
+    "\"",
+    stringContent(Codes),
+    "\"",
+    {
+        string_chars(String, Codes)
+    }.
+stringContent([C|Chars]) -->
+    stringChar(C), stringContent(Chars).
+stringContent([]) --> [].
+
+stringChar(0'\n) --> "\\n".
+stringChar(0'\t) --> "\\t".
+stringChar(0'\") --> "\\\"".
+stringChar(0'\") --> "\\\\".
+stringChar(C) --> [C].
 
 % Paranthesis
 token("[") --> "[".
@@ -119,6 +126,7 @@ csymsa([]) --> [].
 tokens([]) --> [].
 tokens(Ts) --> " ", tokens(Ts).
 tokens(Ts) --> "\n", tokens(Ts).
+tokens(["\"", T, "\""|Ts]) --> token(T, true), tokens(Ts).
 tokens([T|Ts]) --> token(T), tokens(Ts).
 
 lexer(Cs, Tokens) :-
@@ -139,7 +147,6 @@ block(t_block(DL,SL)) --> declaration_list(DL),[";"],statement_list(SL).
 block(t_decl_block(DL)) --> declaration_list(DL),[";"].
 block(t_stmt_block(SL)) --> statement_list(SL).
 block(t_eps_block("epsilon")) --> [].
-
 
 % Rules for declaration list
 declaration_list(t_declaration_list(D,DL)) --> declaration(D), [";"], declaration_list(DL).
@@ -191,7 +198,6 @@ compound_statement(t_empty_cmpnd_stmt) --> ["{"], ["}"].
 % Rules for statement list
 statement_list(t_stmt_list(SL,S)) --> statement_list(SL), statement(S).
 statement_list(S) --> statement(S).
-%statement_list(t_stmt_list("epsilon")) --> [].
 
 % Rules for else if list
 else_if_list(t_else_if_list(ELIFL,ELIF)) --> 
@@ -199,8 +205,7 @@ else_if_list(t_else_if_list(ELIFL,ELIF)) -->
 else_if_list(t_else_if(SE,S)) --> 
     ["elseif"], ["("],
     simple_expression(SE), [")"],
-    statement(S).	
-%else_if_list(t_else_if_list("epsilon")) --> [].
+    statement(S).
 
 % Rules for selection statement
 selection_statement(t_sel_stmt(SE,S,ELIFL)) --> 
@@ -222,25 +227,31 @@ selection_statement(t_sel_stmt(SE,S1,S2)) -->
 
 % Rules for iteration range
 iteration_range(t_iter_range(ID1,SE1,ID2,RO,SE2)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO),
+    ["("], mutable(ID1), ["="], simple_expression(SE1), [";"], 
+    mutable(ID2), relational_operation(RO),
     simple_expression(SE2), [";"], [")"].
+
+iteration_range(t_iter_range(ID2,RO,SE2)) --> 
+    ["("], [";"], 
+    mutable(ID2), relational_operation(RO),
+    simple_expression(SE2), [";"], [")"].
+
 iteration_range(t_iter_range(ID1,SE1,ID2,RO,SE2,E)) --> 
-    ["("], id(ID1), ["="], simple_expression(SE1), [";"], 
-    id(ID2), relational_operation(RO), simple_expression(SE2),
+    ["("], mutable(ID1), ["="], simple_expression(SE1), [";"], 
+    mutable(ID2), relational_operation(RO), simple_expression(SE2),
     [";"], expression(E), [")"].
 iteration_range(t_iter_range(ID,SE1,SE2)) -->  
-    id(ID), ["in"], ["range"], ["("],
+    mutable(ID), ["in"], ["range"], ["("],
     simple_expression(SE1), [","],
     simple_expression(SE2), [")"].
 
 % Rules for iteration statement
-iteration_statement(t_iter_stmt(SE,S)) --> 
+iteration_statement(t_while_stmt(SE,S)) --> 
     ["while"], ["("], simple_expression(SE), [")"], statement(S).
-iteration_statement(t_iter_stmt(IR,S)) --> 
+iteration_statement(t_for_stmt(IR,S)) --> 
     ["for"], iteration_range(IR), statement(S).
 
-% Rules for PRINT statement
+% Rules for print statement
 print_statement(t_print_stmt(SE)) --> ["print"], ["("], simple_expression(SE), [")"], [";"].
 
 % Rules for expression
@@ -270,7 +281,7 @@ unary_relational_expression(URL) --> relational_expression(URL).
 
 % Rules for relational expression
 relational_expression(t_relational_expr(SE1,RO,SE2)) --> 
-	sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
+    sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
 relational_expression(SE) --> sum_expression(SE).
 
 % Rules for relational operation
@@ -313,7 +324,6 @@ factor(M) --> mutable(M).
 
 % Rules for mutable objects
 mutable(t_mutable(ID)) --> id(ID).
-%mutable(t_mutable(M,E)) --> mutable(M), ["["], expression(E), ["]"].
 
 % Rules for immutable objects
 immutable(t_eval_expr(E)) --> ["("], expression(E), [")"].
@@ -321,32 +331,25 @@ immutable(t_const(CONST)) --> constant(CONST).
 
 % Rules for constant
 constant(NC) --> num_constant(NC).
-%constant(CC) --> char_constant(CC).
-%constant(SC) --> string_constant(SC).
+constant(SC) --> string_constant(SC).
 constant(t_bool_const("true")) --> ["true"].
 constant(t_bool_const("false")) --> ["false"].
 
 % Rules for identifier
-%id(t_id(I)) --> [I], {atom(I)}.
-%id(t_id(I)) --> [I], {re_match("^[a-zA-Z_$][a-zA-Z_$0-9]*$", I)}.
-%id(t_id(I)) --> [I], {re_match("^[a-z]+", I)}.
-id(t_id(x)) --> [x].
-id(t_id(y)) --> [y].
-id(t_id(z)) --> [z].
-id(t_id(u)) --> [u].
-id(t_id(v)) --> [v].
+id(t_id(L)) --> [L], {
+    atom_chars(L, Cs),
+    length(Cs, N),
+    length(Lowers,N),
+    maplist(=(lower), Lowers),
+    maplist(char_type, Cs, Lowers)}.
 
 % Rules for integer constant
-num_constant(t_num_const(NC)) --> [NC], {number(NC)}.
-%num_constant(t_num_const(NC)) --> [NC], {rangeValidatorInt(NC)}.
-
-% Rules for character constant
-char_constant(t_char_const(CC)) --> [CC], {atom(CC)}.
-%char_constant(t_char_const(CC)) --> [CC], {re_match("'[\x00-\x7F]'", CC)}.
+num_constant(t_num_const(L)) --> [L], {
+    atom_chars(L, Cs),
+    length(Cs, N),
+    length(Lowers,N),
+    maplist(=(digit), Lowers),
+    maplist(char_type, Cs, Lowers)}.
 
 % Rules for string constant
-string_constant(t_string_const(SC)) --> [SC], {atom(SC)}.
-%string_constant(t_string_const(SC)) --> [SC], {re_match("\"[\x00-\x7F]*\"", SC)}.
-
-% Predicate for validating integer range
-%rangeValidatorInt(NC) :- NC >= -2147483648, NC =< 2147483647.
+string_constant(t_string_const(SC)) --> ["\""], [SC2], {atom_string(SC, SC2)}, ["\""], !.
