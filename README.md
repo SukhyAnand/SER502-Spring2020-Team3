@@ -1,6 +1,8 @@
 # SER502-Spring2020-Team3
-##### Team project for SER-502: Compiler and Virtual Machine for a Programming Language
+#### Team project for SER-502: Compiler and Virtual Machine for a Programming Language
 &nbsp;
+
+# YEPL - Yet Another Programming Language
 
 ## System Specifications
 
