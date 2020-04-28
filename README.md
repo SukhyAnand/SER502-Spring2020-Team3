@@ -48,6 +48,40 @@ For Windows:
 2) runYepl("C:/Users/lenovo/Desktop/ASU Assignments/SER-502/Team Project/SER502-Spring2020-Team3/data/dummy.ic").
 ```
 
+## Requirements Addressed
+
+```
+1) Implemented primitive data types types bool, int, string.
+2) Implemented operations on bool and int datatype.
+3) Support for addition subtraction, multiplication and division operations on int datatype.
+4) Support for and, not, or operations for bool datatypes.
+5) Support for assigment operations and evaluation of expressions.
+6) Support for 'if-else' selection statements.
+7) Support for traditional 'while' iteration statements.
+8) Support for traditional 'for' iteration statement.
+9) Support for 'for in range' iteration statement.
+10) Support for 'ternary operator (?:)'.
+11) Support for 'print' statement.
+12) Generates intermediate code (parsetree) and saves it to a .ic file.
+13) Interpreter takes .ic file as input and prints the ouput on the Prolog runtime environment.
+```
+
+## Extra Features Added
+
+```
+1) Implemented type safety check to ensure a variable holds a value permitted by the domain defined by its datatype.
+2) Implemented type casting of data types bool and int.
+3) Support for nested if-elseif-else statements.
+4) Support for different variants of for loops, with or without initialization statement, with or without increment statement.
+5) Support for mutable and non-mutable expressions to handle r-value and l-value safety checks.
+6) Support for mutable operators: "=", "+=", "-=", "*=", "/=", "++" and "--".
+7) Support for relational operators: "<", "<=", ">", ">=", "==" and "!=".
+8) Support for unary operators: "+" and "-".
+9) Support for '%' arithmetic operator.
+10) Support for paranthesis in expressions "(" and ")".
+11) Handling of prededence and associativity for all expression evaluations based on C language.
+```
+
 ## Team Members
 
 ```
