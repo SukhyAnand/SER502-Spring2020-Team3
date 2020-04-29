@@ -14,16 +14,19 @@ Contributed to deciding on design features and grammar.
 
 ============================================================================================
 
-TENTATIVE PLAN
+Milestone - 2
 
 Team member 1 - Aditya Bajaj
-Will work on generating the parse tree from the tokens sent by the lexical analyzer.
+Worked on entire parser implementation and refining of initial grammar rules for our project 
+design.
 
 Team member 2 - Aihaab Shaikh
-Will work on tokenizing the input program which will be the input for the parser.
+Workedon lexical analyzer, converting inputstream to token codes and then generating a token 
+list which will be provided as input program which will be the input for the parser.
 
 Team member 3 - Sakshi Jain
-Will work on developing the environment that will parse the parse tree and return the output of the program.
+Implemented interpreter logic and wrote evaluators for syntax based semantics.
 
 Team member 4 - Sukhpreet Singh 
-Will work on developing the environment that will parse the parse tree and return the output of the program.
+Worked on writing interpreter logic, integration of design components, creating sample code, 
+fixing bugs, issues, etc.
