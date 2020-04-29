@@ -1,1 +1,0 @@
-t_parser(t_program(t_block(t_declaration(t_type_specifier(int),t_variable_initialize(t_id(x),t_const(t_num_const(1)))),t_stmt_list(t_expr_stmt(t_assignment(t_mutable(t_id(x)),t_sum_expr(t_mutable(t_id(x)),t_add_op(+),t_const(t_num_const(1))))),t_print_stmt(t_mutable(t_id(x))))))).

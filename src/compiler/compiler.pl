@@ -31,7 +31,7 @@ yepl(FileName) :- open(FileName, read, InStream),
 		  L = [H|_T],
 		  atom_concat(H, ".ic", X),
 		  open(X, write, OutStream),
-		  write(OutStream, ParseTree),
+		  writeq(OutStream, ParseTree),
 		  write(OutStream, '.'),
 		  close(OutStream).
 
@@ -47,7 +47,6 @@ token("print") --> "print".
 
 % Data Types
 token("int") --> "int".
-token("char") --> "char".
 token("bool") --> "bool".
 token("string") --> "string".
 
@@ -74,6 +73,8 @@ token("/") --> "/".
 token("%") --> "%".
 token("+") --> "+".
 token("-") --> "-".
+token(":") --> ":".
+token("?") --> "?".
 
 % Delimiters
 token(";") --> ";".
@@ -126,6 +127,9 @@ csymsa([]) --> [].
 tokens([]) --> [].
 tokens(Ts) --> " ", tokens(Ts).
 tokens(Ts) --> "\n", tokens(Ts).
+tokens(Ts) --> "\t", tokens(Ts).
+tokens(Ts) --> "\r", tokens(Ts).
+tokens(Ts) --> "\b", tokens(Ts).
 tokens(["\"", T, "\""|Ts]) --> token(T, true), tokens(Ts).
 tokens([T|Ts]) --> token(T), tokens(Ts).
 
@@ -158,7 +162,6 @@ declaration(t_declaration(TS,VDL)) --> type_specifier(TS), variable_declaration_
 % Rules for type specifier
 type_specifier(t_type_specifier("int")) --> ["int"].
 type_specifier(t_type_specifier("bool")) --> ["bool"].
-type_specifier(t_type_specifier("char")) --> ["char"].
 type_specifier(t_type_specifier("string")) --> ["string"].
 
 % Rules for variable declaration list
@@ -262,7 +265,14 @@ expression(t_multassign(M,E)) --> mutable(M), ["*","="], expression(E).
 expression(t_divassign(M,E)) --> mutable(M), ["/","="], expression(E).
 expression(t_increment(M)) --> mutable(M), ["++"].
 expression(t_decrement(M)) --> mutable(M), ["--"].
-expression(SE) --> simple_expression(SE).
+expression(TE) --> ternary_expression(TE).
+
+% Rules for ternary expression
+ternary_expression(t_tern_expr(SE,E1,E2)) -->
+    simple_expression(SE), ["?"],
+    expression(E1), [":"],
+    expression(E2).
+ternary_expression(TE) --> simple_expression(TE).
 
 % Rules for simple expression
 simple_expression(t_or_expr(SE,AE)) --> simple_expression(SE), ["or"], and_expression(AE).
@@ -280,7 +290,7 @@ unary_relational_expression(t_not_expr(URL)) --> ["!"], unary_relational_express
 unary_relational_expression(URL) --> relational_expression(URL).
 
 % Rules for relational expression
-relational_expression(t_relational_expr(SE1,RO,SE2)) --> 
+relational_expression(t_rel_expr(SE1,RO,SE2)) --> 
     sum_expression(SE1), relational_operation(RO), sum_expression(SE2).
 relational_expression(SE) --> sum_expression(SE).
 
@@ -315,7 +325,8 @@ multiplication_operation(t_mod_op("%")) --> ["%"].
 unary_expression(t_unary_expr(UO,UE)) --> unary_operation(UO), unary_expression(UE).
 unary_expression(F) --> factor(F).
 
-% Rules for unary operation(-1, +3)unary_operation(t_unary_op("-")) --> ["-"].
+% Rules for unary operation(-1, +3)
+unary_operation(t_unary_op("-")) --> ["-"].
 unary_operation(t_unary_op("+")) --> ["+"].
 
 % Rules for factor

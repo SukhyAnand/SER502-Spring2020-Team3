@@ -1,0 +1,8 @@
+int n = 10, i, j;
+int pattern = 1, row = 0;
+for i in range (0, n) {
+    for (j = 0; j<=i; j++)
+         row = row * 10 + pattern;
+    print(row);
+    row = 0;
+}
