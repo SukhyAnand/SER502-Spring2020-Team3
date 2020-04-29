@@ -364,5 +364,3 @@ num_constant(t_num_const(L)) --> [L], {
 
 % Rules for string constant
 string_constant(t_string_const(SC)) --> ["\""], [SC2], {atom_string(SC, SC2)}, ["\""], !.
-
-
